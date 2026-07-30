@@ -1,16 +1,17 @@
 /**
  * Landing page.
  *
- * The hero is the table plan, not a plate of food: this product is about
- * whether a table is free, so the floor plan is the honest opening statement.
+ * The hero is the dining room itself, on video, with the type sitting in the
+ * shadowed left third. The floor plan follows immediately below: the video
+ * sells the room, the plan proves which of it is free.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 import { today, addDays } from '../lib/format.js';
-import { useScrollOffset, useMagnetic } from '../lib/motion.js';
+import { useScrollOffset, useMagnetic, prefersReducedMotion } from '../lib/motion.js';
 import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
 import { RestaurantCard } from '../components/RestaurantCard.jsx';
 import { Select } from '../components/Select.jsx';
@@ -133,8 +134,47 @@ function useHeroTables() {
 
 function Hero() {
   const navigate = useNavigate();
-  const { tables, free } = useHeroTables();
   const scrollY = useScrollOffset();
+  const videoRef = useRef(null);
+  const [motionWelcome, setMotionWelcome] = useState(false);
+
+  // Decide on the client: a reduced-motion visitor gets the poster, not video.
+  useEffect(() => {
+    setMotionWelcome(!prefersReducedMotion());
+  }, []);
+
+  /**
+   * Keep the hero playing.
+   *
+   * Autoplay is refused in more situations than it is granted: some browsers
+   * want the element muted in the DOM rather than only in JSX, some hold off
+   * until the visitor has interacted with the page at all, and background tabs
+   * pause playback outright. A rejected play() leaves a still frame with no
+   * error, so retry on the events that typically unblock it.
+   */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return undefined;
+
+    video.muted = true;
+
+    const attempt = () => video.play().catch(() => {});
+    attempt();
+
+    const onVisible = () => {
+      if (!document.hidden) attempt();
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pointerdown', attempt, { once: true });
+    window.addEventListener('keydown', attempt, { once: true });
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pointerdown', attempt);
+      window.removeEventListener('keydown', attempt);
+    };
+  }, [motionWelcome]);
 
   const search = ({ date, time, partySize }) => {
     navigate(`/restaurants?date=${date}&time=${time}&partySize=${partySize}`);
@@ -143,23 +183,59 @@ function Hero() {
   return (
     <section className="relative overflow-hidden">
       {/*
-        Ambient warmth, as if from a lamp above the pass. The two pools drift at
-        different rates as the page scrolls; moving slower than the text is what
-        reads as distance behind it.
+        The dining room itself, behind everything.
+
+        Muted and inert: an autoplaying hero video is decoration, so it carries
+        no audio and no controls. It also drifts slower than the page scrolls,
+        which is what reads as depth behind the text.
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brass/10 blur-[120px] will-change-transform"
-        style={{ transform: `translate3d(-50%, ${scrollY * 0.28}px, 0)` }}
+        className="pointer-events-none absolute inset-0 will-change-transform"
+        style={{ transform: `translate3d(0, ${scrollY * 0.22}px, 0) scale(1.08)` }}
+      >
+        {motionWelcome ? (
+          <video
+            ref={videoRef}
+            className="h-full w-full object-cover"
+            src="/hero-dining-room.mp4"
+            poster="/hero-dining-room.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          // Reduced motion gets the same frame, held still.
+          <img
+            src="/hero-dining-room.jpg"
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
+
+      {/*
+        Scrims. The room is bright and the type is light, so the left third is
+        pulled well down for contrast and the foot is faded into the page so the
+        video ends rather than stops.
+      */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/88 to-ink/25"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-copper/8 blur-[130px] will-change-transform"
-        style={{ transform: `translate3d(0, ${scrollY * 0.45}px, 0)` }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-ink via-ink/70 to-transparent"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-ink/25"
       />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
-        <div>
+      <div className="relative mx-auto flex min-h-[86vh] max-w-6xl items-center px-5 py-20">
+        <div className="max-w-2xl">
           <p className="rise font-mono text-[11px] tracking-[0.24em] text-brass uppercase">
             Table reservations
           </p>
@@ -174,7 +250,7 @@ function Hero() {
           </h1>
 
           <p
-            className="rise type-lede mt-6 max-w-lg text-sage"
+            className="rise type-lede mt-6 max-w-lg text-linen/75"
             style={{ animationDelay: '700ms' }}
           >
             Mesa reads the floor plan, not a waiting list. Pick a time and we
@@ -186,26 +262,45 @@ function Hero() {
             <SearchBar onSubmit={search} />
           </div>
         </div>
-
-        <div className="relative">
-          {tables.length > 0 ? (
-            <>
-              <FloorPlan
-                tables={tables}
-                freeTableIds={free}
-                height={420}
-                compact
-              />
-              <TablePlanKey className="mt-2 justify-center" />
-              <p className="mt-3 text-center font-mono text-[11px] tracking-[0.14em] text-sage-dim uppercase">
-                The Copper Hearth · tonight
-              </p>
-            </>
-          ) : (
-            <div className="h-[420px]" aria-hidden="true" />
-          )}
-        </div>
       </div>
+    </section>
+  );
+}
+
+/**
+ * The room, tonight.
+ *
+ * The floor plan moved out of the hero when the video took that space. It reads
+ * better here anyway: the video sells the room, and this shows you what is
+ * actually free in it.
+ */
+function TonightsRoom({ tables, free }) {
+  if (tables.length === 0) return null;
+
+  return (
+    <section className="mx-auto max-w-6xl px-5 py-16">
+      <Reveal>
+        <Eyebrow>The room tonight</Eyebrow>
+      </Reveal>
+
+      <Reveal delay={0.08}>
+        <div className="mt-8 grid items-center gap-10 lg:grid-cols-[1fr_20rem]">
+          <FloorPlan tables={tables} freeTableIds={free} height={420} compact />
+
+          <div>
+            <h2 className="font-display type-heading text-linen">
+              Every table, live
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-sage">
+              This is The Copper Hearth as it stands right now — not a listing.
+              Lit tables are free, dark ones are taken. Choose a sitting on any
+              restaurant page and the plan repaints, then highlights the table
+              the booking engine will actually give you.
+            </p>
+            <TablePlanKey className="mt-6" />
+          </div>
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -289,9 +384,12 @@ function Featured() {
 }
 
 export function Landing() {
+  const { tables, free } = useHeroTables();
+
   return (
     <>
       <Hero />
+      <TonightsRoom tables={tables} free={free} />
       <HowItWorks />
       <Featured />
     </>

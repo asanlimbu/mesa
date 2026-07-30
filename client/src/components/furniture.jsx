@@ -18,9 +18,10 @@
 import { RoundedBox, Cylinder } from '@react-three/drei';
 import * as THREE from 'three';
 
-const WALNUT = { color: '#4a3524', roughness: 0.6, metalness: 0.05 };
-const OAK = { color: '#664c34', roughness: 0.62, metalness: 0.05 };
-const METAL = { color: '#1b1c1a', roughness: 0.35, metalness: 0.85 };
+// Cream linen tabletop, dark walnut apron and frame, warm brass for the metalwork.
+const LINEN = { color: '#e6dcc4', roughness: 0.88, metalness: 0 };
+const WALNUT = { color: '#4a3020', roughness: 0.55, metalness: 0.06 };
+const BRASS = { color: '#8a6a33', roughness: 0.3, metalness: 0.9 };
 
 /** Everything stands on the floor plane, so the room shares one datum. */
 export const TABLE_HEIGHT = 0.44;
@@ -68,10 +69,10 @@ export function Chair({ upholstery, emissive, emissiveIntensity }) {
 
       {/* Leg bars, front and back */}
       <RoundedBox args={[0.18, 0.18, 0.032]} radius={0.011} smoothness={2} position={[0, 0.09, -0.075]}>
-        <meshStandardMaterial {...METAL} />
+        <meshStandardMaterial {...BRASS} />
       </RoundedBox>
       <RoundedBox args={[0.18, 0.18, 0.032]} radius={0.011} smoothness={2} position={[0, 0.09, 0.075]}>
-        <meshStandardMaterial {...METAL} />
+        <meshStandardMaterial {...BRASS} />
       </RoundedBox>
     </group>
   );
@@ -110,7 +111,7 @@ export function RoundTable({ radius }) {
         castShadow
         receiveShadow
       >
-        <meshStandardMaterial {...OAK} />
+        <meshStandardMaterial {...LINEN} />
       </Cylinder>
 
       {/* Apron, so the top has an edge rather than floating */}
@@ -120,10 +121,10 @@ export function RoundTable({ radius }) {
 
       {/* Column and foot */}
       <Cylinder args={[0.05, 0.065, 0.38, 20]} position={[0, 0.2, 0]} castShadow>
-        <meshStandardMaterial {...METAL} />
+        <meshStandardMaterial {...BRASS} />
       </Cylinder>
       <Cylinder args={[radius * 0.44, radius * 0.48, 0.03, 28]} position={[0, 0.015, 0]}>
-        <meshStandardMaterial {...METAL} />
+        <meshStandardMaterial {...BRASS} />
       </Cylinder>
     </group>
   );
@@ -149,7 +150,7 @@ export function RectTable({ halfWidth, halfDepth }) {
         castShadow
         receiveShadow
       >
-        <meshStandardMaterial {...OAK} />
+        <meshStandardMaterial {...LINEN} />
       </RoundedBox>
 
       <RoundedBox
@@ -163,7 +164,7 @@ export function RectTable({ halfWidth, halfDepth }) {
 
       {legs.map(([x, z]) => (
         <Cylinder key={`${x}:${z}`} args={[0.024, 0.028, 0.4, 12]} position={[x, 0.2, z]} castShadow>
-          <meshStandardMaterial {...METAL} />
+          <meshStandardMaterial {...BRASS} />
         </Cylinder>
       ))}
     </group>

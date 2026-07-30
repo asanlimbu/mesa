@@ -12,3 +12,4 @@ coverage/
 *.db-journal
 *.sqlite
 *.sqlite3
+.superpowers/

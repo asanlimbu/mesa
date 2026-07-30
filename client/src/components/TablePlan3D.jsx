@@ -21,16 +21,22 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { Chair, RoundTable, RectTable, StateGlow, seatPositions } from './furniture.jsx';
 
 const PALETTE = {
-  floor: '#12291f',
-  grid: '#3f7a64',
+  floor: '#382c20',
+  grid: '#6b543a',
 };
 
-/** Upholstery and floor glow per availability state. */
+/**
+ * Upholstery and floor glow per availability state.
+ *
+ * Upholstery is tan leather throughout — only its warmth shifts with state.
+ * Availability reads unambiguously from the floor glow instead, so the chairs
+ * stay part of the room rather than becoming coloured markers.
+ */
 const STATES = {
-  free: { upholstery: '#2f6b57', emissive: '#3d9077', glow: '#3d9077', lift: 0.14, glowIntensity: 1.7 },
-  taken: { upholstery: '#4a2230', emissive: '#8c3048', glow: '#8c3048', lift: 0.02, glowIntensity: 0.6 },
-  allocated: { upholstery: '#c19a30', emissive: '#f5d77a', glow: '#f5d77a', lift: 0.45, glowIntensity: 3.4 },
-  neutral: { upholstery: '#31473e', emissive: '#5a7166', glow: '#5a7166', lift: 0.05, glowIntensity: 0.4 },
+  free: { upholstery: '#9a6b43', emissive: '#f0b96a', glow: '#f0b96a', lift: 0.14, glowIntensity: 1.7 },
+  taken: { upholstery: '#4a3529', emissive: '#8c3048', glow: '#8c3048', lift: 0.02, glowIntensity: 0.6 },
+  allocated: { upholstery: '#c79a52', emissive: '#ffe0a8', glow: '#ffe0a8', lift: 0.45, glowIntensity: 3.4 },
+  neutral: { upholstery: '#6b503a', emissive: '#8a6a4a', glow: '#8a6a4a', lift: 0.05, glowIntensity: 0.4 },
 };
 
 /** Grid pitch. A setting is the table plus its ring of chairs, so it is wide. */
@@ -227,12 +233,17 @@ export function TablePlan3D({
         camera={{ position: [0, 4.4, 6.6], fov: 36 }}
         gl={{ antialias: true, alpha: true }}
       >
-        <ambientLight intensity={0.75} color="#cfe3d8" />
-        <hemisphereLight args={['#a9cdbc', '#08130f', 0.55]} />
+        {/*
+          Candlelit, not daylit: ambient stays low so the pools of light around
+          each setting read as light rather than washing into flat fill, and
+          the overhead spot remains the dominant source.
+        */}
+        <ambientLight intensity={0.32} color="#4a3826" />
+        <hemisphereLight args={['#7a5c38', '#0d0a06', 0.32]} />
         <directionalLight
           position={[4.5, 8, 3.5]}
-          intensity={2.8}
-          color="#ffdfae"
+          intensity={1.7}
+          color="#ffd08a"
           castShadow
           shadow-mapSize={[1024, 1024]}
           shadow-camera-near={1}
@@ -242,14 +253,14 @@ export function TablePlan3D({
           shadow-camera-top={9}
           shadow-camera-bottom={-9}
         />
-        <pointLight position={[-4.5, 3.2, -3.5]} intensity={38} color="#4ea88b" distance={16} />
-        <pointLight position={[3.5, 2.6, 4.5]} intensity={34} color="#e08a55" distance={14} />
+        <pointLight position={[-4.5, 3.2, -3.5]} intensity={30} color="#c9793a" distance={16} />
+        <pointLight position={[3.5, 2.6, 4.5]} intensity={28} color="#e8a34a" distance={14} />
         <spotLight
           position={[0, 8, 0.5]}
           angle={0.72}
           penumbra={0.9}
-          intensity={70}
-          color="#fff0d0"
+          intensity={72}
+          color="#ffd9a0"
           distance={20}
         />
 
