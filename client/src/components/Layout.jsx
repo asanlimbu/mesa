@@ -7,6 +7,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/auth.jsx';
 import { useToast } from '../state/toast.jsx';
 import { Button } from './ui.jsx';
+import { Footer } from './Footer.jsx';
 
 function Wordmark() {
   return (
@@ -110,15 +111,7 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <footer className="mt-24 border-t border-sage/15 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 text-xs text-sage-dim sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            Mesa — a full-stack coursework project by Asan Limbu. Restaurants and
-            bookings are fictional.
-          </p>
-          <p className="font-mono tracking-[0.12em] uppercase">CMS22204</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

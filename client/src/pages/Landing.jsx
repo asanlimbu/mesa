@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 import { today, addDays } from '../lib/format.js';
-import { TablePlan, TablePlanKey } from '../components/TablePlan.jsx';
+import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
 import { RestaurantCard } from '../components/RestaurantCard.jsx';
 import { Button, Eyebrow, Reveal, TextField, SelectField } from '../components/ui.jsx';
 
@@ -153,19 +153,19 @@ function Hero() {
         <div className="relative">
           {tables.length > 0 ? (
             <>
-              <TablePlan
+              <FloorPlan
                 tables={tables}
                 freeTableIds={free}
-                className="py-10"
+                height={420}
                 compact
               />
-              <TablePlanKey className="mt-4 justify-center" />
+              <TablePlanKey className="mt-2 justify-center" />
               <p className="mt-3 text-center font-mono text-[11px] tracking-[0.14em] text-sage-dim uppercase">
                 The Copper Hearth · tonight
               </p>
             </>
           ) : (
-            <div className="h-80" aria-hidden="true" />
+            <div className="h-[420px]" aria-hidden="true" />
           )}
         </div>
       </div>
@@ -235,7 +235,7 @@ function Featured() {
   if (restaurants.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-5 pb-20">
+    <section className="mx-auto max-w-6xl px-5 pb-10">
       <Reveal>
         <Eyebrow>Best rated this month</Eyebrow>
       </Reveal>

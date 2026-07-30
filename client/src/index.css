@@ -8,23 +8,46 @@
   darks read warmer and more specific than neutral near-black.
 */
 @theme {
-  --color-ink: #0b1a14; /* ground — black with green in it */
-  --color-ink-deep: #071009; /* recessed wells */
-  --color-banquette: #14352a; /* raised surfaces */
-  --color-banquette-lit: #1c473a; /* hover / active surfaces */
-  --color-brass: #c9a227; /* accent, available */
-  --color-brass-bright: #e8c14f; /* accent hover */
-  --color-oxblood: #6b2233; /* taken, destructive */
-  --color-oxblood-lit: #8c2e44;
-  --color-linen: #f2ede3; /* primary text */
-  --color-sage: #8fa89b; /* secondary text, rules */
-  --color-sage-dim: #5c7268; /* tertiary text */
+  /* Ground — five steps of dark instead of two, so surfaces can actually
+     stack and the page reads as lit rather than flat. */
+  --color-ink: #071310;
+  --color-ink-deep: #030907;
+  --color-banquette: #102b23;
+  --color-banquette-lit: #17392e;
+  --color-banquette-raised: #1f4a3c;
+
+  /* Brass — the primary accent, warmed slightly. */
+  --color-brass: #d4a937;
+  --color-brass-bright: #f5d77a;
+  --color-brass-deep: #8a6f16;
+
+  /* Copper — warm secondary. Gives the palette somewhere to move that is not
+     just "more brass", and carries the ember gradients. */
+  --color-copper: #c2683a;
+  --color-copper-lit: #e08a55;
+
+  /* Verdigris — cool accent, the only genuinely cold hue. Used sparingly for
+     positive states so success does not read as the same gold as everything. */
+  --color-verdigris: #4ea88b;
+  --color-verdigris-lit: #6fc9a9;
+
+  --color-oxblood: #7a2436;
+  --color-oxblood-lit: #a3364f;
+
+  --color-linen: #f5f0e6;
+  --color-sage: #97b0a2;
+  --color-sage-dim: #62796e;
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 
   --radius-plate: 0.75rem;
+
+  /* Motion tokens, so timings are consistent rather than ad hoc. */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-quick: 200ms;
+  --duration-settle: 700ms;
 }
 
 @layer base {

@@ -19,7 +19,7 @@ import {
   longDateOf,
   stampOf,
 } from '../lib/format.js';
-import { TablePlan, TablePlanKey } from '../components/TablePlan.jsx';
+import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
 import {
   Button,
   Eyebrow,
@@ -277,11 +277,12 @@ export function RestaurantDetail() {
               covers. Choose a sitting to see what is free.
             </p>
 
-            <TablePlan
+            <FloorPlan
               tables={restaurant.tables}
               freeTableIds={freeTableIds}
               allocatedTableId={allocatedTableId}
-              className="py-12"
+              height={440}
+              className="mt-4"
             />
             <TablePlanKey className="justify-center" />
           </div>
