@@ -78,7 +78,9 @@ export function FloorPlan({
   if (!use3D) return <div className={className}>{flat}</div>;
 
   return (
-    <div className={className}>
+    // Lifted above the film grain: a full-screen overlay stacked over a WebGL
+    // canvas blanks it in Chromium, so the canvas has to own the higher layer.
+    <div className={`relative z-[41] ${className}`}>
       <SceneBoundary fallback={flat}>
         <Suspense fallback={<div style={{ height }} />}>
           <TablePlan3D
