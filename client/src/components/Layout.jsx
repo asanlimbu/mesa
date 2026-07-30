@@ -2,7 +2,12 @@
  * Application shell: the top bar, the page outlet and the footer.
  */
 
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+
+import { useSmoothScroll } from '../lib/motion.js';
+import { Cursor } from './Cursor.jsx';
+import { Preloader } from './Preloader.jsx';
 
 import { useAuth } from '../state/auth.jsx';
 import { useToast } from '../state/toast.jsx';
@@ -44,6 +49,15 @@ export function Layout() {
   const { isSignedIn, isManager, user, signOut } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const lenis = useSmoothScroll();
+
+  // Every route change starts at the top. Lenis owns the scroll position, so
+  // asking the window directly would be ignored.
+  useEffect(() => {
+    lenis.current?.scrollTo(0, { immediate: true });
+    window.scrollTo(0, 0);
+  }, [location.pathname, lenis]);
 
   const handleSignOut = () => {
     signOut();
@@ -53,6 +67,8 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Preloader />
+      <Cursor />
       <header className="sticky top-0 z-40 border-b border-sage/15 bg-ink/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
           <Wordmark />
@@ -107,7 +123,8 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="flex-1">
+      {/* Keyed on pathname so each route replays the entry animation. */}
+      <main key={location.pathname} className="page-enter flex-1">
         <Outlet />
       </main>
 

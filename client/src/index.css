@@ -75,10 +75,41 @@
     color: var(--color-ink);
   }
 
+  /* Focus reads as light rather than a drawn box, so it belongs to the same
+     lighting model as the rest of the page. Keeps a hairline ring for Windows
+     high-contrast mode, where box-shadow is discarded. */
   :focus-visible {
-    outline: 2px solid var(--color-brass);
-    outline-offset: 3px;
-    border-radius: 2px;
+    outline: 1px solid transparent;
+    outline-offset: 2px;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-brass) 55%, transparent),
+      0 0 18px 2px color-mix(in srgb, var(--color-brass) 35%, transparent);
+    border-radius: 6px;
+  }
+
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline: 2px solid Highlight;
+    }
+  }
+
+  /*
+    Film grain over the whole page.
+
+    Dark gradients band badly on wide-gamut displays; a little noise breaks the
+    steps up and gives the surface a physical quality. Fixed, pointer-inert,
+    and above the page but below the toasts.
+  */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    pointer-events: none;
+    opacity: 0.32;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
   }
 
   /* Inputs inherit the page palette rather than the browser's. */
@@ -194,6 +225,55 @@
     }
   }
 
+  /*
+    Fluid type.
+
+    clamp() scales continuously with the viewport instead of snapping at
+    breakpoints, so a 1440px laptop and a 1600px monitor are not served the
+    same heading size.
+  */
+  .type-display {
+    font-size: clamp(2.75rem, 1.4rem + 5.4vw, 5.5rem);
+    line-height: 0.94;
+    letter-spacing: -0.02em;
+  }
+
+  .type-heading {
+    font-size: clamp(1.9rem, 1.2rem + 2.4vw, 3.1rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+  }
+
+  .type-lede {
+    font-size: clamp(1rem, 0.92rem + 0.42vw, 1.2rem);
+    line-height: 1.6;
+  }
+
+  /* Word-by-word hero reveal. Each word is a masked row that the inner span
+     rises through, so the line assembles rather than simply fading. */
+  .word-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.08em;
+  }
+
+  .word-mask > span {
+    display: inline-block;
+    animation: word-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  @keyframes word-rise {
+    from {
+      transform: translateY(105%) rotate(3deg);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) rotate(0);
+      opacity: 1;
+    }
+  }
+
   /* Scroll reveal: a CSS transition toggled by IntersectionObserver. */
   .reveal {
     opacity: 0;
@@ -213,6 +293,89 @@
   .reveal {
     opacity: 1;
     transform: none;
+  }
+
+  .word-mask > span {
+    animation: none;
+  }
+
+  /* The custom cursor is a motion effect; give the pointer back. */
+  .cursor-hidden,
+  .cursor-hidden * {
+    cursor: auto !important;
+  }
+}
+
+/*
+  Custom cursor.
+
+  Only engaged for fine pointers — a touch device has no cursor to replace, and
+  hiding the system cursor there would do nothing but risk breaking input.
+*/
+@media (hover: hover) and (pointer: fine) {
+  .cursor-hidden,
+  .cursor-hidden * {
+    cursor: none;
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Preloader: the mark draws itself, then a rule sweeps across. */
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Cursor ring swells and fills when it is over something you can act on. */
+.cursor-ring.is-over {
+  width: 3.25rem;
+  height: 3.25rem;
+  background-color: color-mix(in srgb, var(--color-brass) 85%, transparent);
+  border-color: transparent;
+}
+
+/* Page transition, driven by CSS so a stalled animation frame loop can never
+   leave a route invisible. */
+.page-enter {
+  animation: page-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
   }
 }
 

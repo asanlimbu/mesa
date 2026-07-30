@@ -11,8 +11,9 @@
  */
 
 import { Suspense, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox, Cylinder, ContactShadows, Float } from '@react-three/drei';
+import { EffectComposer, Bloom, N8AO, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
 /**
@@ -166,9 +167,30 @@ function Room({ tables, freeTableIds, allocatedTableId, onHover }) {
   const extentZ = Math.max(...placed.map((t) => Math.abs(t.z))) + 0.85;
   const span = Math.max(extentX, extentZ);
 
+  const { size } = useThree();
+
+  /**
+   * Continuous turn, plus a lean toward the pointer.
+   *
+   * The lean is clamped and eased so the room follows the cursor without ever
+   * swinging far enough to break the plan reading.
+   */
   useFrame((state, delta) => {
-    if (spin.current) spin.current.rotation.y += delta * 0.12;
+    if (!spin.current) return;
+
+    spin.current.rotation.y += delta * 0.12;
+
+    // pointer is -1..1 across the canvas.
+    const targetX = -state.pointer.y * 0.22;
+    const targetZ = state.pointer.x * 0.06;
+
+    spin.current.rotation.x += (targetX - spin.current.rotation.x) * Math.min(1, delta * 3);
+    spin.current.rotation.z += (targetZ - spin.current.rotation.z) * Math.min(1, delta * 3);
   });
+
+  // Narrow canvases get a slightly smaller room, so the plan never crowds the
+  // edges on a phone.
+  const breathing = size.width < 640 ? 3.1 : 3.6;
 
   const stateOf = (table) => {
     if (table.id === allocatedTableId) return 'allocated';
@@ -182,7 +204,7 @@ function Room({ tables, freeTableIds, allocatedTableId, onHover }) {
   // Looking down at ~40° foreshortens the depth axis, so the slab occupies less
   // vertical screen space than its raw diagonal implies — hence the generous
   // factor here rather than a strict 1:1 fit.
-  const fit = 3.6 / (span * Math.SQRT2);
+  const fit = breathing / (span * Math.SQRT2);
 
   return (
     <group ref={spin} scale={fit}>
@@ -278,6 +300,23 @@ export function TablePlan3D({
             allocatedTableId={allocatedTableId}
             onHover={setHovered}
           />
+
+          {/*
+            Post-processing is what separates a render from a game frame.
+            Bloom makes the emissive rims actually throw light; N8AO puts soft
+            contact darkening between the tables and the floor; the vignette
+            settles the edges into the page background.
+          */}
+          <EffectComposer enableNormalPass multisampling={0}>
+            <N8AO aoRadius={0.55} intensity={2.4} distanceFalloff={0.8} quality="performance" />
+            <Bloom
+              intensity={0.85}
+              luminanceThreshold={0.45}
+              luminanceSmoothing={0.3}
+              mipmapBlur
+            />
+            <Vignette offset={0.32} darkness={0.55} />
+          </EffectComposer>
         </Suspense>
       </Canvas>
 

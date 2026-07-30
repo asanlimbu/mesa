@@ -20,11 +20,11 @@ import {
   stampOf,
 } from '../lib/format.js';
 import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
+import { Select } from '../components/Select.jsx';
 import {
   Button,
   Eyebrow,
   ErrorNote,
-  SelectField,
   Spinner,
   TextField,
 } from '../components/ui.jsx';
@@ -359,17 +359,15 @@ export function RestaurantDetail() {
                     max={addDays(today(), 90)}
                     onChange={(event) => setDate(event.target.value)}
                   />
-                  <SelectField
+                  <Select
                     label="Party"
-                    value={partySize}
-                    onChange={(event) => setPartySize(Number(event.target.value))}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((size) => (
-                      <option key={size} value={size} className="bg-ink">
-                        {size}
-                      </option>
-                    ))}
-                  </SelectField>
+                    value={String(partySize)}
+                    onChange={(next) => setPartySize(Number(next))}
+                    options={Array.from({ length: 12 }, (_, i) => ({
+                      value: String(i + 1),
+                      label: `${i + 1}`,
+                    }))}
+                  />
                 </div>
 
                 <div className="mt-5">

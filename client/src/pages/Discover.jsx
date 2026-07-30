@@ -10,6 +10,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { priceBandOf } from '../lib/format.js';
 import { RestaurantCard } from '../components/RestaurantCard.jsx';
+import { Select } from '../components/Select.jsx';
 import { SearchBar } from './Landing.jsx';
 import {
   Button,
@@ -17,7 +18,6 @@ import {
   EmptyState,
   ErrorNote,
   Reveal,
-  SelectField,
   Spinner,
   TextField,
 } from '../components/ui.jsx';
@@ -65,20 +65,15 @@ function FilterPanel({ params, setParam, options, onClear, activeCount }) {
           onChange={(event) => setParam('q', event.target.value)}
         />
 
-        <SelectField
+        <Select
           label="City"
           value={params.get('city') ?? ''}
-          onChange={(event) => setParam('city', event.target.value)}
-        >
-          <option value="" className="bg-ink">
-            Anywhere
-          </option>
-          {options.cities.map((city) => (
-            <option key={city} value={city} className="bg-ink">
-              {city}
-            </option>
-          ))}
-        </SelectField>
+          onChange={(next) => setParam('city', next)}
+          options={[
+            { value: '', label: 'Anywhere' },
+            ...options.cities.map((city) => ({ value: city, label: city })),
+          ]}
+        />
 
         <fieldset>
           <legend className="mb-2.5 font-mono text-[11px] tracking-[0.14em] text-sage uppercase">
@@ -254,20 +249,16 @@ export function Discover() {
                 : `${result?.total ?? 0} ${result?.total === 1 ? 'restaurant' : 'restaurants'}`}
             </p>
 
-            <label className="flex items-center gap-2 text-xs text-sage">
-              Sort
-              <select
+            <div className="flex items-center gap-2 text-xs text-sage">
+              <span>Sort</span>
+              <Select
                 value={params.get('sort') ?? 'rating'}
-                onChange={(event) => setParam('sort', event.target.value)}
-                className="rounded-plate border border-sage/25 bg-ink-deep/60 px-2.5 py-1.5 text-xs text-linen focus:border-brass focus:outline-none"
-              >
-                {SORTS.map((sort) => (
-                  <option key={sort.value} value={sort.value} className="bg-ink">
-                    {sort.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(next) => setParam('sort', next)}
+                options={SORTS}
+                className="w-48"
+                buttonClassName="py-1.5 text-xs"
+              />
+            </div>
           </div>
 
           {error && <ErrorNote className="mb-6">{error}</ErrorNote>}

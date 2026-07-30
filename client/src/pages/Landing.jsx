@@ -10,15 +10,43 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 import { today, addDays } from '../lib/format.js';
+import { useScrollOffset, useMagnetic } from '../lib/motion.js';
 import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
 import { RestaurantCard } from '../components/RestaurantCard.jsx';
-import { Button, Eyebrow, Reveal, TextField, SelectField } from '../components/ui.jsx';
+import { Select } from '../components/Select.jsx';
+import { Button, Eyebrow, Reveal, TextField } from '../components/ui.jsx';
+
+const PARTY_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
+  value: String(index + 1),
+  label: `${index + 1} ${index === 0 ? 'guest' : 'guests'}`,
+}));
+
+/**
+ * Split a line into words, each masked so it rises into place.
+ *
+ * Words rather than characters: character-by-character shreds a serif this
+ * large and, read aloud, turns one headline into thirty-odd nodes.
+ */
+function StaggeredLine({ text, delay = 0, className = '' }) {
+  return (
+    <span className={className}>
+      {text.split(' ').map((word, index) => (
+        <span key={`${word}-${index}`}>
+          <span className="word-mask">
+            <span style={{ animationDelay: `${delay + index * 70}ms` }}>{word}</span>
+          </span>{' '}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /** Search controls, shared by the hero and the discovery page header. */
 export function SearchBar({ initial = {}, onSubmit, className = '' }) {
   const [date, setDate] = useState(initial.date ?? today());
   const [time, setTime] = useState(initial.time ?? '19:30');
   const [partySize, setPartySize] = useState(initial.partySize ?? 2);
+  const magnet = useMagnetic(0.28);
 
   return (
     <form
@@ -43,22 +71,19 @@ export function SearchBar({ initial = {}, onSubmit, className = '' }) {
         value={time}
         onChange={(event) => setTime(event.target.value)}
       />
-      <SelectField
+      <Select
         label="Party"
-        value={partySize}
-        onChange={(event) => setPartySize(event.target.value)}
-        className="sm:w-28"
-      >
-        {Array.from({ length: 12 }, (_, index) => index + 1).map((size) => (
-          <option key={size} value={size} className="bg-ink">
-            {size} {size === 1 ? 'guest' : 'guests'}
-          </option>
-        ))}
-      </SelectField>
+        value={String(partySize)}
+        onChange={(next) => setPartySize(Number(next))}
+        options={PARTY_OPTIONS}
+        className="sm:w-32"
+      />
 
-      <Button type="submit" className="h-[42px] self-end">
-        Find a table
-      </Button>
+      <div ref={magnet} className="self-end transition-transform duration-300 ease-out">
+        <Button type="submit" className="h-[42px] w-full">
+          Find a table
+        </Button>
+      </div>
     </form>
   );
 }
@@ -109,6 +134,7 @@ function useHeroTables() {
 function Hero() {
   const navigate = useNavigate();
   const { tables, free } = useHeroTables();
+  const scrollY = useScrollOffset();
 
   const search = ({ date, time, partySize }) => {
     navigate(`/restaurants?date=${date}&time=${time}&partySize=${partySize}`);
@@ -116,10 +142,20 @@ function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Ambient warmth, as if from a lamp above the pass. */}
+      {/*
+        Ambient warmth, as if from a lamp above the pass. The two pools drift at
+        different rates as the page scrolls; moving slower than the text is what
+        reads as distance behind it.
+      */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brass/8 blur-[120px]"
+        className="pointer-events-none absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brass/10 blur-[120px] will-change-transform"
+        style={{ transform: `translate3d(-50%, ${scrollY * 0.28}px, 0)` }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-copper/8 blur-[130px] will-change-transform"
+        style={{ transform: `translate3d(0, ${scrollY * 0.45}px, 0)` }}
       />
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
@@ -128,24 +164,25 @@ function Hero() {
             Table reservations
           </p>
 
-          <h1
-            className="rise font-display mt-4 text-5xl leading-[0.95] font-medium text-balance text-linen sm:text-6xl lg:text-7xl"
-            style={{ animationDelay: '80ms' }}
-          >
-            See which tables are
-            <span className="text-foil italic"> actually free</span>.
+          <h1 className="type-display font-display mt-4 font-medium text-balance text-linen">
+            <StaggeredLine text="See which tables are" delay={120} />
+            <StaggeredLine
+              text="actually free."
+              delay={400}
+              className="text-foil italic"
+            />
           </h1>
 
           <p
-            className="rise mt-6 max-w-lg text-lg leading-relaxed text-sage"
-            style={{ animationDelay: '200ms' }}
+            className="rise type-lede mt-6 max-w-lg text-sage"
+            style={{ animationDelay: '700ms' }}
           >
             Mesa reads the floor plan, not a waiting list. Pick a time and we
             check every table in the room — then tell you which one is yours
             before you book.
           </p>
 
-          <div className="rise mt-8" style={{ animationDelay: '320ms' }}>
+          <div className="rise mt-8" style={{ animationDelay: '840ms' }}>
             <SearchBar onSubmit={search} />
           </div>
         </div>
