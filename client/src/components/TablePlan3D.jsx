@@ -1,44 +1,41 @@
 /**
- * The floor plan, in real 3D.
+ * The dining room, in 3D.
  *
- * WebGL via react-three-fiber. Each mesh is a real table row from the database:
- * free tables sit low and lit, taken tables sink and go dark, and the table the
- * booking engine will allocate rises, glows and turns under a spotlight.
+ * Every setting is a real table with a chair per cover, laid out from actual
+ * table rows in the database. Availability shows in the upholstery and in a
+ * pool of light on the floor beneath each setting; the furniture itself stays
+ * wood and metal.
  *
- * The scene keeps a slow orbit so the room reads as an object rather than a
- * picture. Everything degrades: no WebGL, or a reduced-motion preference, and
- * the caller falls back to the flat CSS plan.
+ * The room turns slowly and leans toward the pointer. The table the booking
+ * engine will allocate rises, brightens and turns on the spot.
+ *
+ * Degrades all the way down: no WebGL, or a reduced-motion preference, and the
+ * caller falls back to the flat CSS plan.
  */
 
 import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Cylinder, ContactShadows, Float } from '@react-three/drei';
-import { EffectComposer, Bloom, N8AO, Vignette } from '@react-three/postprocessing';
-import * as THREE from 'three';
+import { RoundedBox, ContactShadows, Float } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
-/**
- * Scene colours.
- *
- * Tops stay muted and close to the room; only the rims carry saturation. A
- * fully saturated tabletop reads as a plastic counter rather than a table under
- * restaurant lighting.
- */
+import { Chair, RoundTable, RectTable, StateGlow, seatPositions } from './furniture.jsx';
+
 const PALETTE = {
   floor: '#12291f',
   grid: '#3f7a64',
-  free: '#1b4034',
-  freeEdge: '#3d9077',
-  taken: '#341620',
-  takenEdge: '#8c3048',
-  allocated: '#c19a30',
-  allocatedEdge: '#f5d77a',
-  neutral: '#1a3a30',
-  neutralEdge: '#5a7166',
 };
 
-const CELL = 1.5;
+/** Upholstery and floor glow per availability state. */
+const STATES = {
+  free: { upholstery: '#2f6b57', emissive: '#3d9077', glow: '#3d9077', lift: 0.14, glowIntensity: 1.7 },
+  taken: { upholstery: '#4a2230', emissive: '#8c3048', glow: '#8c3048', lift: 0.02, glowIntensity: 0.6 },
+  allocated: { upholstery: '#c19a30', emissive: '#f5d77a', glow: '#f5d77a', lift: 0.45, glowIntensity: 3.4 },
+  neutral: { upholstery: '#31473e', emissive: '#5a7166', glow: '#5a7166', lift: 0.05, glowIntensity: 0.4 },
+};
 
-/** Lay tables out on a grid, staggering alternate rows so it reads as a room. */
+/** Grid pitch. A setting is the table plus its ring of chairs, so it is wide. */
+const CELL = 2.35;
+
 function layout(tables) {
   const columns = Math.min(4, Math.max(3, Math.ceil(Math.sqrt(tables.length))));
   const rows = Math.ceil(tables.length / columns);
@@ -48,59 +45,61 @@ function layout(tables) {
     const column = index % columns;
     const stagger = row % 2 === 0 ? 0 : 0.5;
 
+    // Round for two-tops and the big communal table; rectangular in between.
+    const round = table.seats <= 2 || table.seats >= 8;
+
+    const halfWidth = round
+      ? table.seats <= 2
+        ? 0.32
+        : 0.58
+      : table.seats <= 4
+        ? 0.44
+        : 0.6;
+
+    const halfDepth = round ? halfWidth : table.seats <= 4 ? 0.36 : 0.4;
+
     return {
       ...table,
-      // Centre the whole arrangement on the origin.
+      round,
+      halfWidth,
+      halfDepth,
+      // Centre the arrangement on the origin.
       x: (column + stagger - (columns - 1) / 2) * CELL,
       z: (row - (rows - 1) / 2) * CELL,
-      radius: table.seats <= 2 ? 0.34 : table.seats <= 4 ? 0.44 : table.seats <= 6 ? 0.54 : 0.62,
-      round: table.seats <= 2 || table.seats >= 8,
     };
   });
 }
 
-function surfaceFor(state) {
-  if (state === 'allocated') return { top: PALETTE.allocated, edge: PALETTE.allocatedEdge, emissive: PALETTE.allocated, intensity: 0.85 };
-  if (state === 'taken') return { top: PALETTE.taken, edge: PALETTE.takenEdge, emissive: PALETTE.takenEdge, intensity: 0.08 };
-  if (state === 'free') return { top: PALETTE.free, edge: PALETTE.freeEdge, emissive: PALETTE.freeEdge, intensity: 0.22 };
-  return { top: PALETTE.neutral, edge: PALETTE.neutralEdge, emissive: PALETTE.neutralEdge, intensity: 0.05 };
-}
-
-/** One table: a top, a pedestal, and a rim that carries the state colour. */
-function Table({ table, state, onHover }) {
+/** One setting: a table, a chair per cover, and its pool of light. */
+function Setting({ table, state, onHover }) {
   const group = useRef();
   const [hovered, setHovered] = useState(false);
 
-  const surface = useMemo(() => surfaceFor(state), [state]);
+  const look = STATES[state] ?? STATES.neutral;
   const allocated = state === 'allocated';
-  const taken = state === 'taken';
 
-  // Rest height: allocated tables sit proudest, taken tables sink.
-  const restY = allocated ? 0.26 : taken ? -0.06 : 0.04;
+  const seats = useMemo(
+    () => seatPositions(table.seats, table.halfWidth, table.halfDepth),
+    [table.seats, table.halfWidth, table.halfDepth],
+  );
+
+  const restY = allocated ? 0.24 : hovered ? 0.12 : 0;
 
   useFrame((frameState, delta) => {
     if (!group.current) return;
 
-    const target = restY + (hovered ? 0.16 : 0);
-    group.current.position.y += (target - group.current.position.y) * Math.min(1, delta * 8);
+    group.current.position.y += (restY - group.current.position.y) * Math.min(1, delta * 7);
 
-    // The allocated table turns slowly, so the eye lands on it.
-    if (allocated) {
-      group.current.rotation.y += delta * 0.55;
-    } else if (hovered) {
-      group.current.rotation.y += delta * 0.9;
-    }
+    // The allocated setting turns on the spot, so the eye lands on it.
+    if (allocated) group.current.rotation.y += delta * 0.4;
+    else if (hovered) group.current.rotation.y += delta * 0.65;
   });
 
-  // Tops are thick enough to read as objects rather than discs painted on the
-  // floor — at this camera elevation a thin slab disappears entirely.
-  const Top = table.round ? Cylinder : RoundedBox;
-  const topProps = table.round
-    ? { args: [table.radius, table.radius, 0.2, 44] }
-    : { args: [table.radius * 1.9, 0.2, table.radius * 1.9], radius: 0.06, smoothness: 4 };
+  const glowIntensity = hovered ? look.glowIntensity + 0.8 : look.glowIntensity;
+  const cushionLift = hovered || allocated ? look.lift + 0.15 : look.lift;
 
   return (
-    <group position={[table.x, restY, table.z]}>
+    <group position={[table.x, 0, table.z]}>
       <group
         ref={group}
         onPointerOver={(event) => {
@@ -113,84 +112,54 @@ function Table({ table, state, onHover }) {
           onHover?.(null);
         }}
       >
-        {/* Table top */}
-        <Top {...topProps} castShadow receiveShadow>
-          <meshStandardMaterial
-            color={surface.top}
-            emissive={new THREE.Color(surface.emissive)}
-            emissiveIntensity={hovered ? surface.intensity + 0.25 : surface.intensity}
-            metalness={allocated ? 0.75 : 0.25}
-            roughness={allocated ? 0.22 : 0.62}
-          />
-        </Top>
+        <StateGlow
+          radius={Math.max(table.halfWidth, table.halfDepth) + 0.54}
+          colour={look.glow}
+          intensity={glowIntensity}
+        />
 
-        {/* Rim — a lit band around the *side* of the table. It sits below the
-            top surface so the eye reads a dark tabletop with a glowing edge,
-            not a saturated disc. */}
-        <Cylinder
-          args={[
-            table.radius * (table.round ? 1.08 : 1.42),
-            table.radius * (table.round ? 1.08 : 1.42),
-            0.075,
-            52,
-          ]}
-          position={[0, -0.035, 0]}
-        >
-          <meshStandardMaterial
-            color={surface.edge}
-            emissive={new THREE.Color(surface.edge)}
-            emissiveIntensity={allocated ? 2.2 : taken ? 0.5 : 1.3}
-            toneMapped={false}
-          />
-        </Cylinder>
+        {table.round ? (
+          <RoundTable radius={table.halfWidth} />
+        ) : (
+          <RectTable halfWidth={table.halfWidth} halfDepth={table.halfDepth} />
+        )}
 
-        {/* Pedestal and foot */}
-        <Cylinder args={[0.06, 0.09, 0.3, 20]} position={[0, -0.14, 0]} castShadow>
-          <meshStandardMaterial color={surface.top} metalness={0.6} roughness={0.4} />
-        </Cylinder>
-        <Cylinder args={[table.radius * 0.45, table.radius * 0.5, 0.04, 24]} position={[0, -0.29, 0]}>
-          <meshStandardMaterial color={surface.top} metalness={0.6} roughness={0.45} />
-        </Cylinder>
+        {seats.map((seat, index) => (
+          <group key={index} position={[seat.x, 0, seat.z]} rotation={[0, seat.rotation, 0]}>
+            <Chair
+              upholstery={look.upholstery}
+              emissive={look.emissive}
+              emissiveIntensity={cushionLift}
+            />
+          </group>
+        ))}
       </group>
     </group>
   );
 }
 
-/** The room: floor slab, grid lines, and the tables. */
+/** The room: floor, grid, and every setting. */
 function Room({ tables, freeTableIds, allocatedTableId, onHover }) {
   const placed = useMemo(() => layout(tables), [tables]);
   const spin = useRef();
-
-  // Keep the slab close to the tables. A generous margin reads as an empty
-  // car park rather than a dining room, and it rotates out of frame.
-  const extentX = Math.max(...placed.map((t) => Math.abs(t.x))) + 0.85;
-  const extentZ = Math.max(...placed.map((t) => Math.abs(t.z))) + 0.85;
-  const span = Math.max(extentX, extentZ);
-
   const { size } = useThree();
 
-  /**
-   * Continuous turn, plus a lean toward the pointer.
-   *
-   * The lean is clamped and eased so the room follows the cursor without ever
-   * swinging far enough to break the plan reading.
-   */
+  const extentX = Math.max(...placed.map((t) => Math.abs(t.x))) + 1.35;
+  const extentZ = Math.max(...placed.map((t) => Math.abs(t.z))) + 1.35;
+  const span = Math.max(extentX, extentZ);
+
   useFrame((state, delta) => {
     if (!spin.current) return;
 
-    spin.current.rotation.y += delta * 0.12;
+    spin.current.rotation.y += delta * 0.1;
 
-    // pointer is -1..1 across the canvas.
-    const targetX = -state.pointer.y * 0.22;
-    const targetZ = state.pointer.x * 0.06;
+    // Lean toward the pointer, clamped so the plan stays legible.
+    const targetX = -state.pointer.y * 0.16;
+    const targetZ = state.pointer.x * 0.05;
 
     spin.current.rotation.x += (targetX - spin.current.rotation.x) * Math.min(1, delta * 3);
     spin.current.rotation.z += (targetZ - spin.current.rotation.z) * Math.min(1, delta * 3);
   });
-
-  // Narrow canvases get a slightly smaller room, so the plan never crowds the
-  // edges on a phone.
-  const breathing = size.width < 640 ? 3.1 : 3.6;
 
   const stateOf = (table) => {
     if (table.id === allocatedTableId) return 'allocated';
@@ -198,45 +167,40 @@ function Room({ tables, freeTableIds, allocatedTableId, onHover }) {
     return freeTableIds.includes(table.id) ? 'free' : 'taken';
   };
 
-  // The room turns, so what has to fit the frame is its rotating bounding
-  // circle, not its width. Normalising on the half-diagonal keeps a six-table
-  // venue and a ten-table venue both framed the same way.
-  // Looking down at ~40° foreshortens the depth axis, so the slab occupies less
-  // vertical screen space than its raw diagonal implies — hence the generous
-  // factor here rather than a strict 1:1 fit.
+  // The room turns, so what must fit the frame is its rotating bounding circle,
+  // not its width. Looking down at ~40° also foreshortens depth, hence the
+  // generous factor rather than a strict 1:1 fit.
+  const breathing = size.width < 640 ? 3.1 : 3.7;
   const fit = breathing / (span * Math.SQRT2);
 
   return (
     <group ref={spin} scale={fit}>
-      <Float speed={1.1} rotationIntensity={0.06} floatIntensity={0.22}>
-        {/* Floor slab. Square, so the grid drawn on it cannot overhang an
-            edge when the room is wider than it is deep. */}
+      <Float speed={1} rotationIntensity={0.04} floatIntensity={0.16}>
+        {/* Floor slab. Corner radius stays under half the 0.14 thickness. */}
         <RoundedBox
           args={[span * 2, 0.14, span * 2]}
-          radius={0.09}
+          radius={0.06}
           smoothness={4}
-          position={[0, -0.42, 0]}
+          position={[0, -0.075, 0]}
           receiveShadow
         >
-          <meshStandardMaterial color={PALETTE.floor} metalness={0.2} roughness={0.55} />
+          <meshStandardMaterial color={PALETTE.floor} metalness={0.15} roughness={0.6} />
         </RoundedBox>
 
-        {/* Grid, drawn just above the slab like a plan on paper. Sized to the
-            slab so it cannot spill past the edge. */}
-        <gridHelper args={[span * 2, 12, PALETTE.grid, PALETTE.grid]} position={[0, -0.34, 0]}>
-          <lineBasicMaterial attach="material" transparent opacity={0.45} />
+        <gridHelper args={[span * 2, 12, PALETTE.grid, PALETTE.grid]} position={[0, 0.002, 0]}>
+          <lineBasicMaterial attach="material" transparent opacity={0.3} />
         </gridHelper>
 
         {placed.map((table) => (
-          <Table key={table.id} table={table} state={stateOf(table)} onHover={onHover} />
+          <Setting key={table.id} table={table} state={stateOf(table)} onHover={onHover} />
         ))}
 
         <ContactShadows
-          position={[0, -0.32, 0]}
-          opacity={0.65}
+          position={[0, 0.012, 0]}
+          opacity={0.62}
           scale={span * 2.6}
-          blur={2}
-          far={1.8}
+          blur={2.2}
+          far={2}
           color="#000000"
         />
       </Float>
@@ -260,62 +224,63 @@ export function TablePlan3D({
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        // Looking down at roughly 45°: low enough to keep the tables as solid
-        // objects, high enough that the arrangement still reads as a plan.
-        camera={{ position: [0, 5.4, 7.0], fov: 34 }}
+        camera={{ position: [0, 4.4, 6.6], fov: 36 }}
         gl={{ antialias: true, alpha: true }}
       >
+        <ambientLight intensity={0.75} color="#cfe3d8" />
+        <hemisphereLight args={['#a9cdbc', '#08130f', 0.55]} />
+        <directionalLight
+          position={[4.5, 8, 3.5]}
+          intensity={2.8}
+          color="#ffdfae"
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-camera-near={1}
+          shadow-camera-far={24}
+          shadow-camera-left={-9}
+          shadow-camera-right={9}
+          shadow-camera-top={9}
+          shadow-camera-bottom={-9}
+        />
+        <pointLight position={[-4.5, 3.2, -3.5]} intensity={38} color="#4ea88b" distance={16} />
+        <pointLight position={[3.5, 2.6, 4.5]} intensity={34} color="#e08a55" distance={14} />
+        <spotLight
+          position={[0, 8, 0.5]}
+          angle={0.72}
+          penumbra={0.9}
+          intensity={70}
+          color="#fff0d0"
+          distance={20}
+        />
+
+        <Room
+          tables={tables}
+          freeTableIds={freeTableIds}
+          allocatedTableId={allocatedTableId}
+          onHover={setHovered}
+        />
+
+        {/*
+          Post-processing gets its own Suspense boundary.
+
+          Sharing one with the room meant that while the effect pipeline
+          resolved — or if it never resolved — the room stayed unmounted and
+          the canvas rendered nothing at all. The scene must never wait on its
+          own polish.
+
+          Bloom and vignette only: N8AO needs a normal pass, and that pipeline
+          rendered this scene black. Contact shadows already supply the
+          grounding ambient occlusion would have added.
+        */}
         <Suspense fallback={null}>
-          {/* Warm key from above the pass, cool fill from the room, and two
-              coloured rims so the metal has something to catch. */}
-          <ambientLight intensity={0.7} color="#cfe3d8" />
-          <hemisphereLight args={['#a9cdbc', '#08130f', 0.55]} />
-          <directionalLight
-            position={[4.5, 8, 3.5]}
-            intensity={3.2}
-            color="#ffdfae"
-            castShadow
-            shadow-mapSize={[1024, 1024]}
-            shadow-camera-near={1}
-            shadow-camera-far={22}
-            shadow-camera-left={-8}
-            shadow-camera-right={8}
-            shadow-camera-top={8}
-            shadow-camera-bottom={-8}
-          />
-          <pointLight position={[-4.5, 3.2, -3.5]} intensity={45} color="#4ea88b" distance={16} />
-          <pointLight position={[3.5, 2.6, 4.5]} intensity={38} color="#e08a55" distance={14} />
-          <spotLight
-            position={[0, 7.5, 0]}
-            angle={0.7}
-            penumbra={0.85}
-            intensity={55}
-            color="#fff0d0"
-            distance={18}
-          />
-
-          <Room
-            tables={tables}
-            freeTableIds={freeTableIds}
-            allocatedTableId={allocatedTableId}
-            onHover={setHovered}
-          />
-
-          {/*
-            Post-processing is what separates a render from a game frame.
-            Bloom makes the emissive rims actually throw light; N8AO puts soft
-            contact darkening between the tables and the floor; the vignette
-            settles the edges into the page background.
-          */}
-          <EffectComposer enableNormalPass multisampling={0}>
-            <N8AO aoRadius={0.55} intensity={2.4} distanceFalloff={0.8} quality="performance" />
+          <EffectComposer multisampling={0}>
             <Bloom
-              intensity={0.85}
-              luminanceThreshold={0.45}
-              luminanceSmoothing={0.3}
+              intensity={0.9}
+              luminanceThreshold={0.4}
+              luminanceSmoothing={0.32}
               mipmapBlur
             />
-            <Vignette offset={0.32} darkness={0.55} />
+            <Vignette offset={0.32} darkness={0.5} />
           </EffectComposer>
         </Suspense>
       </Canvas>
@@ -327,7 +292,7 @@ export function TablePlan3D({
             hovered ? 'text-brass opacity-100' : 'opacity-0'
           }`}
         >
-          {hovered ? `Table ${hovered.label} · ${hovered.seats} seats` : '—'}
+          {hovered ? `Table ${hovered.label} · ${hovered.seats} covers` : '—'}
         </p>
       </div>
     </div>
