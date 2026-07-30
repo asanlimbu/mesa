@@ -7,15 +7,14 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 import { today, addDays } from '../lib/format.js';
 import { useScrollOffset, useMagnetic, prefersReducedMotion } from '../lib/motion.js';
-import { FloorPlan, TablePlanKey } from '../components/FloorPlan.jsx';
 import { RestaurantCard } from '../components/RestaurantCard.jsx';
 import { Select } from '../components/Select.jsx';
-import { Button, Eyebrow, Reveal, TextField } from '../components/ui.jsx';
+import { Button, Eyebrow, Reveal, TiltCard, TextField } from '../components/ui.jsx';
 
 const PARTY_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
   value: String(index + 1),
@@ -87,49 +86,6 @@ export function SearchBar({ initial = {}, onSubmit, className = '' }) {
       </div>
     </form>
   );
-}
-
-/** Tables for the hero plan, taken from a real venue so the shapes are honest. */
-function useHeroTables() {
-  const [tables, setTables] = useState([]);
-  const [free, setFree] = useState(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function load() {
-      try {
-        const restaurant = await api.restaurants.get('the-copper-hearth', controller.signal);
-        setTables(restaurant.tables);
-
-        const availability = await api.restaurants.availability(
-          'the-copper-hearth',
-          { date: today(), partySize: 2 },
-          controller.signal,
-        );
-
-        // Approximate which tables are free tonight by sampling the evening
-        // sittings — enough to make the plan truthful without a bespoke endpoint.
-        const openSittings = availability.slots.filter((slot) => slot.available).length;
-        const ratio = availability.slots.length
-          ? openSittings / availability.slots.length
-          : 0.6;
-
-        setFree(
-          restaurant.tables
-            .filter((_, index) => index / restaurant.tables.length < ratio)
-            .map((table) => table.id),
-        );
-      } catch {
-        // The hero is decorative if the API is unreachable; the page still works.
-      }
-    }
-
-    load();
-    return () => controller.abort();
-  }, []);
-
-  return { tables, free };
 }
 
 function Hero() {
@@ -268,39 +224,83 @@ function Hero() {
 }
 
 /**
- * The room, tonight.
+ * Rooms worth sitting in.
  *
- * The floor plan moved out of the hero when the video took that space. It reads
- * better here anyway: the video sells the room, and this shows you what is
- * actually free in it.
+ * Photography rather than the 3D plan. The plan is a working instrument and it
+ * belongs on a restaurant page, where it answers a question the diner has just
+ * asked; on the landing page it was a demo of itself, and it read as plastic
+ * next to real footage. Photographs are what make someone want to book.
+ *
+ * Images are Unsplash, free for commercial and academic use without attribution.
  */
-function TonightsRoom({ tables, free }) {
-  if (tables.length === 0) return null;
+const ROOMS = [
+  {
+    src: 'https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?auto=format&fit=crop&w=1000&q=80',
+    alt: 'A dark dining room under warm pendant lighting',
+    className: 'lg:mt-14',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1000&q=80',
+    alt: 'A candlelit table, plates being served',
+    className: '',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?auto=format&fit=crop&w=1000&q=80',
+    alt: 'Diners mid-meal at a busy table',
+    className: 'lg:mt-8',
+  },
+];
 
+function RoomsWorthSitting() {
   return (
-    <section className="mx-auto max-w-6xl px-5 py-16">
+    <section className="mx-auto max-w-6xl px-5 py-20">
       <Reveal>
-        <Eyebrow>The room tonight</Eyebrow>
+        <Eyebrow>Rooms worth sitting in</Eyebrow>
       </Reveal>
 
-      <Reveal delay={0.08}>
-        <div className="mt-8 grid items-center gap-10 lg:grid-cols-[1fr_20rem]">
-          <FloorPlan tables={tables} freeTableIds={free} height={420} compact />
-
-          <div>
+      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[1fr_1.35fr]">
+        <Reveal>
+          <div className="lg:sticky lg:top-28">
             <h2 className="font-display type-heading text-linen">
-              Every table, live
+              Independent kitchens, real rooms
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-sage">
-              This is The Copper Hearth as it stands right now — not a listing.
-              Lit tables are free, dark ones are taken. Choose a sitting on any
-              restaurant page and the plan repaints, then highlights the table
-              the booking engine will actually give you.
+            <p className="mt-4 max-w-md leading-relaxed text-sage">
+              Six restaurants across five cities, each running its own floor and
+              its own hours. No chains, no ghost kitchens, and no listing that
+              tells you to ring ahead.
             </p>
-            <TablePlanKey className="mt-6" />
+            <p className="mt-4 max-w-md leading-relaxed text-sage">
+              Pick a night and Mesa checks every table in every room, then shows
+              you only what a party your size could actually sit at.
+            </p>
+
+            <Link
+              to="/restaurants"
+              className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-brass transition-colors hover:text-brass-bright"
+            >
+              Browse all restaurants
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
+        </Reveal>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {ROOMS.map((room, index) => (
+            <Reveal key={room.src} delay={index * 0.08} className={room.className}>
+              <TiltCard intensity={5}>
+                <figure className="overflow-hidden rounded-plate border border-sage/15">
+                  <img
+                    src={room.src}
+                    alt={room.alt}
+                    loading="lazy"
+                    className="aspect-[3/4] w-full object-cover transition-transform duration-700 hover:scale-105"
+                  />
+                </figure>
+              </TiltCard>
+            </Reveal>
+          ))}
         </div>
-      </Reveal>
+      </div>
     </section>
   );
 }
@@ -384,12 +384,10 @@ function Featured() {
 }
 
 export function Landing() {
-  const { tables, free } = useHeroTables();
-
   return (
     <>
       <Hero />
-      <TonightsRoom tables={tables} free={free} />
+      <RoomsWorthSitting />
       <HowItWorks />
       <Featured />
     </>
