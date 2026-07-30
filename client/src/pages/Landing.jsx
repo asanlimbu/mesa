@@ -148,19 +148,25 @@ function Hero() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 will-change-transform"
-        style={{ transform: `translate3d(0, ${scrollY * 0.22}px, 0) scale(1.08)` }}
+        // No upward scale. The source is 720p and this runs full-bleed on 2x
+        // displays, so it is already being asked for more detail than it has;
+        // magnifying it further only softens it. The parallax drift stays.
+        style={{ transform: `translate3d(0, ${scrollY * 0.22}px, 0)` }}
       >
         {motionWelcome ? (
           <video
             ref={videoRef}
             className="h-full w-full object-cover"
+            // A little contrast and saturation makes a compressed source read
+            // richer; it cannot add detail, but it stops it looking washed.
+            style={{ filter: 'contrast(1.08) saturate(1.12) brightness(1.02)' }}
             src="/hero-dining-room.mp4"
             poster="/hero-dining-room.jpg"
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="auto"
           />
         ) : (
           // Reduced motion gets the same frame, held still.
@@ -168,6 +174,7 @@ function Hero() {
             src="/hero-dining-room.jpg"
             alt=""
             className="h-full w-full object-cover"
+            style={{ filter: 'contrast(1.08) saturate(1.12) brightness(1.02)' }}
           />
         )}
       </div>
