@@ -1,0 +1,92 @@
+// Mesa — restaurant reservation platform
+//
+// Provider is SQLite for development. SQLite does not support Prisma `enum` or
+// `Json` scalar types, so:
+//   - `User.role` and `Reservation.status` are Strings, validated against the
+//     constants in src/lib/constants.js before they reach the database.
+//   - `Restaurant.openingHours` holds a JSON string, parsed in the service layer.
+// Both choices keep the schema portable to PostgreSQL without a rewrite.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("DINER") // DINER | MANAGER
+  createdAt    DateTime @default(now())
+
+  restaurants  Restaurant[]  @relation("RestaurantManager")
+  reservations Reservation[]
+
+  @@index([role])
+}
+
+model Restaurant {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  description    String
+  cuisine        String
+  city           String
+  addressLine    String
+  postcode       String
+  priceBand      Int // 1..4, rendered as £ .. ££££
+  rating         Float    @default(0)
+  heroImage      String
+  seatingMinutes Int      @default(90)
+  openingHours   String // JSON string: { "mon": { "open": "12:00", "close": "22:00" } | null, ... }
+  managerId      String
+  createdAt      DateTime @default(now())
+
+  manager      User          @relation("RestaurantManager", fields: [managerId], references: [id], onDelete: Cascade)
+  tables       Table[]
+  reservations Reservation[]
+
+  @@index([city])
+  @@index([cuisine])
+  @@index([managerId])
+}
+
+model Table {
+  id           String @id @default(cuid())
+  restaurantId String
+  label        String
+  seats        Int
+
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+
+  @@index([restaurantId, seats])
+}
+
+model Reservation {
+  id           String   @id @default(cuid())
+  restaurantId String
+  tableId      String
+  userId       String
+  partySize    Int
+  startsAt     DateTime
+  endsAt       DateTime
+  status       String   @default("CONFIRMED") // PENDING | CONFIRMED | SEATED | COMPLETED | CANCELLED | NO_SHOW
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table      Table      @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Every availability query filters on these columns.
+  @@index([tableId, startsAt, endsAt])
+  @@index([restaurantId, startsAt])
+  @@index([userId, startsAt])
+}

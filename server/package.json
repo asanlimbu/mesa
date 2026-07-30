@@ -1,0 +1,28 @@
+{
+  "name": "mesa-server",
+  "version": "1.0.0",
+  "description": "Mesa reservation platform — Express API",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:reset": "prisma db push --force-reset && node prisma/seed.js",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0",
+    "supertest": "^7.1.4"
+  }
+}
