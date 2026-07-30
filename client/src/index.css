@@ -1,0 +1,208 @@
+@import 'tailwindcss';
+
+/*
+  Mesa design tokens.
+
+  The palette comes from the dining room rather than from a UI kit: bottle-green
+  lacquer banquettes, brass fittings, oxblood leather, linen napkins. Green-based
+  darks read warmer and more specific than neutral near-black.
+*/
+@theme {
+  --color-ink: #0b1a14; /* ground — black with green in it */
+  --color-ink-deep: #071009; /* recessed wells */
+  --color-banquette: #14352a; /* raised surfaces */
+  --color-banquette-lit: #1c473a; /* hover / active surfaces */
+  --color-brass: #c9a227; /* accent, available */
+  --color-brass-bright: #e8c14f; /* accent hover */
+  --color-oxblood: #6b2233; /* taken, destructive */
+  --color-oxblood-lit: #8c2e44;
+  --color-linen: #f2ede3; /* primary text */
+  --color-sage: #8fa89b; /* secondary text, rules */
+  --color-sage-dim: #5c7268; /* tertiary text */
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --radius-plate: 0.75rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-linen);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Fraunces is variable — dial in a little "wonk" and softness so the display
+     face has craft rather than reading as a stock high-contrast serif. */
+  .font-display {
+    font-variation-settings: 'SOFT' 20, 'WONK' 1;
+  }
+
+  ::selection {
+    background-color: var(--color-brass);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Inputs inherit the page palette rather than the browser's. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(1) sepia(1) saturate(3) hue-rotate(5deg);
+    cursor: pointer;
+  }
+
+  /* Scrollbars, so the dark ground survives overflow areas. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-sage-dim) transparent;
+  }
+}
+
+@layer utilities {
+  /* Ledger rule — the hairline under a section label, as in a booking sheet. */
+  .rule-ledger {
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-sage) 45%, transparent),
+      transparent
+    );
+  }
+
+  /* Brass foil text, used only on the wordmark and hero numerals. */
+  .text-foil {
+    background-image: linear-gradient(
+      110deg,
+      #8a6f16 0%,
+      var(--color-brass) 28%,
+      #f6e08a 46%,
+      var(--color-brass) 62%,
+      #8a6f16 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .paper-grain {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-linen) 8%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 4px 4px;
+  }
+
+  /* Isometric stage for the table plan. */
+  .stage-iso {
+    perspective: 1400px;
+    perspective-origin: 50% 40%;
+  }
+
+  /*
+    The plan's rotation lives in CSS, not in a JS animation, so the floor is
+    correct on first paint and stays correct if scripted motion never runs.
+  */
+  .plan-tilt {
+    transform: rotateX(56deg) rotateZ(-40deg);
+    transform-style: preserve-3d;
+  }
+
+  /* Counter-rotation, so table labels read flat to the viewer. */
+  .plan-label {
+    transform: rotateZ(40deg) rotateX(-56deg);
+  }
+
+  .plan-rise {
+    animation: plan-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  @keyframes plan-rise {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /*
+    Entry animations are CSS, not scripted.
+
+    Content must never depend on an animation frame loop to become visible: if
+    that loop is throttled or paused, a JS-driven fade from opacity 0 leaves the
+    page permanently blank. A CSS animation that fails simply shows the element.
+  */
+  .rise {
+    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Scroll reveal: a CSS transition toggled by IntersectionObserver. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

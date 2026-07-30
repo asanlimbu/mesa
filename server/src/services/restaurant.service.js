@@ -13,6 +13,7 @@ import { parseDateTime } from '../lib/validation.js';
 import {
   endOfSitting,
   allocateTable,
+  findFreeTables,
   isWithinOpeningHours,
   hoursForDate,
   candidateSittings,
@@ -195,17 +196,35 @@ export async function availabilityFor({ identifier, dateString, partySize }) {
     select: { id: true, tableId: true, startsAt: true, endsAt: true, status: true },
   });
 
+  const now = new Date();
+
   const slots = candidateSittings(day, hours, restaurant.seatingMinutes).map(
     (startsAt) => {
       const window = {
         startsAt,
         endsAt: endOfSitting(startsAt, restaurant.seatingMinutes),
       };
-      const table = allocateTable(restaurant.tables, partySize, window, reservations);
+
+      // A sitting that has already begun is not bookable, however empty the
+      // room is. Reporting it as available would offer the diner a time the
+      // booking endpoint is bound to reject.
+      const past = startsAt <= now;
+
+      // Report the real free tables and the exact table the engine would
+      // allocate, so the floor plan and the "you will be seated at" line match
+      // what booking actually does. Anything less makes the plan a guess.
+      const free = past
+        ? []
+        : findFreeTables(restaurant.tables, partySize, window, reservations);
+
       return {
         startsAt: startsAt.toISOString(),
-        available: table !== null,
-        seats: table?.seats ?? null,
+        available: free.length > 0,
+        past,
+        freeTableIds: free.map((table) => table.id),
+        tableId: free[0]?.id ?? null,
+        tableLabel: free[0]?.label ?? null,
+        seats: free[0]?.seats ?? null,
       };
     },
   );
