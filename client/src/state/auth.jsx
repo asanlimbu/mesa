@@ -24,11 +24,20 @@ export function AuthProvider({ children }) {
 
     api.auth
       .me(controller.signal)
-      .then(({ user: me }) => setUser(me))
-      .catch((error) => {
-        if (error.name !== 'AbortError') setToken(null);
+      .then(({ user: me }) => {
+        setUser(me);
+        setLoading(false);
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        // An abort means this effect was superseded — StrictMode mounts twice
+        // in development — and a newer request now owns the state. Clearing
+        // `loading` here would briefly report "not signed in" to the route
+        // guards, bouncing an authenticated user to the sign-in page.
+        if (error.name === 'AbortError') return;
+
+        setToken(null);
+        setLoading(false);
+      });
 
     return () => controller.abort();
   }, []);

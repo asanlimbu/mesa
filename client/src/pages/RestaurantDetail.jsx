@@ -132,11 +132,18 @@ export function RestaurantDetail() {
 
     api.restaurants
       .get(slug, controller.signal)
-      .then(setRestaurant)
-      .catch((requestError) => {
-        if (requestError.name !== 'AbortError') setError(requestError.message);
+      .then((data) => {
+        setRestaurant(data);
+        setLoading(false);
       })
-      .finally(() => setLoading(false));
+      .catch((requestError) => {
+        // An aborted request must not clear `loading`, or the component falls
+        // through to its "restaurant not found" branch while the real request
+        // is still in flight.
+        if (requestError.name === 'AbortError') return;
+        setError(requestError.message);
+        setLoading(false);
+      });
 
     return () => controller.abort();
   }, [slug]);

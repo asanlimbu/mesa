@@ -86,11 +86,18 @@ export function ManagerDashboard() {
 
     api.manager
       .stats({ days: 30 }, controller.signal)
-      .then(setStats)
-      .catch((requestError) => {
-        if (requestError.name !== 'AbortError') setError(requestError.message);
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
       })
-      .finally(() => setLoading(false));
+      .catch((requestError) => {
+        // On abort a newer request owns the state. Clearing `loading` here
+        // would drop the component past its guard clauses while `stats` is
+        // still null, and the render reads stats.restaurant.
+        if (requestError.name === 'AbortError') return;
+        setError(requestError.message);
+        setLoading(false);
+      });
 
     return () => controller.abort();
   }, []);

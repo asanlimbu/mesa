@@ -162,11 +162,15 @@ export function Discover() {
     const timer = setTimeout(() => {
       api.restaurants
         .search(Object.fromEntries(collect(params)), controller.signal)
-        .then(setResult)
-        .catch((requestError) => {
-          if (requestError.name !== 'AbortError') setError(requestError.message);
+        .then((data) => {
+          setResult(data);
+          setLoading(false);
         })
-        .finally(() => setLoading(false));
+        .catch((requestError) => {
+          if (requestError.name === 'AbortError') return;
+          setError(requestError.message);
+          setLoading(false);
+        });
     }, 220);
 
     return () => {

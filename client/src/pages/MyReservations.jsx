@@ -85,11 +85,15 @@ export function MyReservations() {
 
     api.reservations
       .mine(controller.signal)
-      .then(setData)
-      .catch((requestError) => {
-        if (requestError.name !== 'AbortError') setError(requestError.message);
+      .then((result) => {
+        setData(result);
+        setLoading(false);
       })
-      .finally(() => setLoading(false));
+      .catch((requestError) => {
+        if (requestError.name === 'AbortError') return;
+        setError(requestError.message);
+        setLoading(false);
+      });
 
     return () => controller.abort();
   };
