@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Press F5 on this to run the whole app and open it in a browser.
+      // The preLaunchTask starts the API and the web server first.
+      "name": "Run Mesa",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/client",
+      "preLaunchTask": "Start Mesa (API + web)",
+      // Leave the servers running when the browser window is closed.
+      "postDebugTask": ""
+    },
+    {
+      // Breakpoints in server/src land here. Starts the API alone — pair it
+      // with the "Start Mesa" task if you also want the front end.
+      "name": "Debug the API",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/src/index.js",
+      "cwd": "${workspaceFolder}/server",
+      "envFile": "${workspaceFolder}/server/.env",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      // Breakpoints in the booking engine and its tests.
+      "name": "Debug the tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/test/availability.test.js",
+      "runtimeArgs": ["--test"],
+      "cwd": "${workspaceFolder}/server",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal"
+    }
+  ]
+}
