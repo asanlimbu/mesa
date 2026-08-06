@@ -1,16 +1,17 @@
 {
   "name": "mesa",
   "version": "1.0.0",
-  "description": "Mesa — restaurant table reservation platform (CMS22204)",
+  "description": "Mesa \u2014 restaurant table reservation platform (CMS22204)",
   "private": true,
   "scripts": {
     "setup": "npm install && npm --prefix server install && npm --prefix client install && npm run db:setup",
     "db:setup": "npm --prefix server run db:push && npm --prefix server run db:seed",
     "db:seed": "npm --prefix server run db:seed",
     "dev": "concurrently -n api,web -c yellow,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "start": "concurrently -n api,web -c yellow,green \"npm --prefix server start\" \"npm --prefix client run preview\"",
+    "start": "npm run build && npm --prefix server start",
     "build": "npm --prefix client run build",
-    "test": "npm --prefix server test"
+    "test": "npm --prefix server test",
+    "start:api": "npm --prefix server start"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

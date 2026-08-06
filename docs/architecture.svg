@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" width="900" height="720" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Mesa — system architecture and data flow</title>
+  <desc>Layered architecture: React SPA over HTTP to an Express API, through middleware and services to a pure booking engine and Prisma ORM onto SQLite.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a6a33"/>
+    </marker>
+    <marker id="arrowLight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#97b0a2"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="720" fill="#071310"/>
+
+  <text x="40" y="48" fill="#f5f0e6" font-size="22" font-weight="600">Mesa — architecture and data flow</text>
+  <text x="40" y="72" fill="#97b0a2" font-size="13">Each layer depends only on the one beneath it. Arrows show the path of a booking request.</text>
+
+  <!-- Browser -->
+  <rect x="40" y="100" width="500" height="94" rx="10" fill="#102b23" stroke="#2f6b57"/>
+  <text x="60" y="128" fill="#d4a937" font-size="11" letter-spacing="1.6">BROWSER</text>
+  <text x="60" y="152" fill="#f5f0e6" font-size="15" font-weight="600">React SPA (Vite)</text>
+  <text x="60" y="174" fill="#97b0a2" font-size="12">Pages · Components · Context (auth, toasts) · React Router guards</text>
+
+  <!-- request arrow down -->
+  <line x1="290" y1="194" x2="290" y2="236" stroke="#8a6a33" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="302" y="220" fill="#d4a937" font-size="11">1 · POST /api/reservations — JSON + Bearer JWT</text>
+
+  <!-- Middleware -->
+  <rect x="40" y="238" width="500" height="104" rx="10" fill="#102b23" stroke="#2f6b57"/>
+  <text x="60" y="266" fill="#d4a937" font-size="11" letter-spacing="1.6">EXPRESS · MIDDLEWARE</text>
+  <text x="60" y="290" fill="#f5f0e6" font-size="13">requestId → helmet → CORS → rate limit → JSON body → logger</text>
+  <text x="60" y="312" fill="#f5f0e6" font-size="13">authenticate <tspan fill="#97b0a2">(who are you — 401)</tspan>  ·  authorize <tspan fill="#97b0a2">(may you — 403)</tspan></text>
+  <text x="60" y="332" fill="#97b0a2" font-size="12">Routes never touch Prisma.</text>
+
+  <line x1="290" y1="342" x2="290" y2="380" stroke="#8a6a33" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="302" y="366" fill="#d4a937" font-size="11">2 · validated request</text>
+
+  <!-- Services -->
+  <rect x="40" y="382" width="500" height="100" rx="10" fill="#102b23" stroke="#2f6b57"/>
+  <text x="60" y="410" fill="#d4a937" font-size="11" letter-spacing="1.6">SERVICES · BUSINESS LOGIC</text>
+  <text x="60" y="434" fill="#f5f0e6" font-size="13">auth · restaurants · reservations · stats</text>
+  <text x="60" y="456" fill="#97b0a2" font-size="12">Opens a transaction. Ownership check: restaurant.managerId === user.id</text>
+  <text x="60" y="474" fill="#97b0a2" font-size="12">Services never touch req or res.</text>
+
+  <line x1="290" y1="482" x2="290" y2="520" stroke="#8a6a33" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="302" y="506" fill="#d4a937" font-size="11">3 · candidate tables + clashing bookings</text>
+
+  <!-- Engine -->
+  <rect x="40" y="522" width="500" height="86" rx="10" fill="#14352a" stroke="#d4a937" stroke-width="1.5"/>
+  <text x="60" y="550" fill="#d4a937" font-size="11" letter-spacing="1.6">lib/availability.js — PURE, NO I/O</text>
+  <text x="60" y="574" fill="#f5f0e6" font-size="13">overlaps(a,b) = a.startsAt &lt; b.endsAt &amp;&amp; a.endsAt &gt; b.startsAt</text>
+  <text x="60" y="596" fill="#97b0a2" font-size="12">Allocates the smallest sufficient table. 35 unit tests target this file.</text>
+
+  <line x1="290" y1="608" x2="290" y2="640" stroke="#8a6a33" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="302" y="632" fill="#d4a937" font-size="11">4 · re-check, then INSERT inside the transaction</text>
+
+  <!-- Data -->
+  <rect x="40" y="642" width="500" height="56" rx="10" fill="#102b23" stroke="#2f6b57"/>
+  <text x="60" y="668" fill="#d4a937" font-size="11" letter-spacing="1.6">PRISMA ORM</text>
+  <text x="60" y="688" fill="#f5f0e6" font-size="13">SQLite (development)  →  PostgreSQL (deployment, unchanged schema)</text>
+
+  <!-- Right column: data model -->
+  <rect x="580" y="100" width="280" height="290" rx="10" fill="#0d1f19" stroke="#2f6b57"/>
+  <text x="600" y="128" fill="#d4a937" font-size="11" letter-spacing="1.6">DATA MODEL</text>
+
+  <rect x="600" y="144" width="110" height="34" rx="6" fill="#14352a" stroke="#97b0a2"/>
+  <text x="655" y="166" fill="#f5f0e6" font-size="12" text-anchor="middle">User</text>
+
+  <rect x="730" y="144" width="110" height="34" rx="6" fill="#14352a" stroke="#97b0a2"/>
+  <text x="785" y="166" fill="#f5f0e6" font-size="12" text-anchor="middle">Restaurant</text>
+
+  <rect x="730" y="222" width="110" height="34" rx="6" fill="#14352a" stroke="#97b0a2"/>
+  <text x="785" y="244" fill="#f5f0e6" font-size="12" text-anchor="middle">Table</text>
+
+  <rect x="600" y="300" width="240" height="34" rx="6" fill="#14352a" stroke="#d4a937"/>
+  <text x="720" y="322" fill="#f5f0e6" font-size="12" text-anchor="middle">Reservation</text>
+
+  <line x1="710" y1="161" x2="728" y2="161" stroke="#97b0a2" marker-end="url(#arrowLight)"/>
+  <text x="700" y="196" fill="#97b0a2" font-size="10">manages</text>
+
+  <line x1="785" y1="178" x2="785" y2="220" stroke="#97b0a2" marker-end="url(#arrowLight)"/>
+  <text x="795" y="204" fill="#97b0a2" font-size="10">has many</text>
+
+  <line x1="785" y1="256" x2="785" y2="298" stroke="#97b0a2" marker-end="url(#arrowLight)"/>
+  <line x1="655" y1="178" x2="655" y2="298" stroke="#97b0a2" marker-end="url(#arrowLight)"/>
+  <text x="600" y="240" fill="#97b0a2" font-size="10">books</text>
+
+  <text x="600" y="356" fill="#97b0a2" font-size="11">A reservation holds one table for</text>
+  <text x="600" y="372" fill="#97b0a2" font-size="11">[startsAt, endsAt) — half-open.</text>
+
+  <!-- Right column: roles -->
+  <rect x="580" y="410" width="280" height="288" rx="10" fill="#0d1f19" stroke="#2f6b57"/>
+  <text x="600" y="438" fill="#d4a937" font-size="11" letter-spacing="1.6">ACCESS CONTROL</text>
+
+  <text x="600" y="466" fill="#f5f0e6" font-size="12" font-weight="600">DINER</text>
+  <text x="600" y="486" fill="#97b0a2" font-size="11">Search · book · manage own</text>
+  <text x="600" y="502" fill="#97b0a2" font-size="11">reservations only</text>
+
+  <text x="600" y="532" fill="#f5f0e6" font-size="12" font-weight="600">MANAGER</text>
+  <text x="600" y="552" fill="#97b0a2" font-size="11">Own venue: queue, statuses,</text>
+  <text x="600" y="568" fill="#97b0a2" font-size="11">dashboard</text>
+
+  <rect x="600" y="590" width="240" height="90" rx="6" fill="#14352a" stroke="#8c3048"/>
+  <text x="612" y="614" fill="#f5f0e6" font-size="11" font-weight="600">Ownership, not just role</text>
+  <text x="612" y="634" fill="#97b0a2" font-size="10.5">A manager reaching another venue</text>
+  <text x="612" y="650" fill="#97b0a2" font-size="10.5">receives 404, never 403 — the API</text>
+  <text x="612" y="666" fill="#97b0a2" font-size="10.5">does not confirm what it hides.</text>
+</svg>

@@ -15,6 +15,10 @@
  *   8. 404, then the error handler, which must be last
  */
 
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -100,6 +104,46 @@ export function createApp() {
   app.use('/api/restaurants', restaurantRoutes);
   app.use('/api/reservations', writeLimiter, reservationRoutes);
   app.use('/api/manager', managerRoutes);
+
+  /**
+   * Serve the built React front end from the same Node server.
+   *
+   * In development the two run separately — Vite owns the client and proxies
+   * /api here — because hot reload is worth more than a single origin. Once
+   * built, one process serves both, which is what a deployment actually looks
+   * like and removes CORS from the picture entirely.
+   *
+   * Mounted after the API routes so nothing here can shadow an endpoint, and
+   * before the 404 handler so unknown *page* routes still reach React Router.
+   */
+  const clientBuild = resolve(dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+
+  if (existsSync(join(clientBuild, 'index.html'))) {
+    // Hashed asset filenames are safe to cache hard; index.html never is, or
+    // visitors keep loading the previous build's script tags.
+    app.use(
+      express.static(clientBuild, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('index.html')) {
+            res.setHeader('Cache-Control', 'no-cache');
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      }),
+    );
+
+    // Client-side routing: any non-API path that is not a real file is a React
+    // route, so hand it index.html and let the router decide — including /404.
+    app.get(/^\/(?!api\/).*/, (_req, res) => {
+      // sendFile bypasses the static handler above, so the shell sets its own
+      // no-cache header — otherwise a cached index.html keeps pointing at the
+      // previous build's hashed bundles after a deploy.
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(join(clientBuild, 'index.html'));
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);

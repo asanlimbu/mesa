@@ -33,6 +33,10 @@ Both start together. The Vite dev server proxies `/api` to the Express server,
 so the browser stays on one origin and there is no CORS preflight in
 development.
 
+For a single-server run closer to a deployment — Express serving the compiled
+React app *and* the API on one port — use `npm start` and open
+http://localhost:4000.
+
 ### Demo accounts
 
 All seeded accounts use the password `password123`.
@@ -55,7 +59,7 @@ authorisation: neither manager can read or change the other's reservations.
 | `npm run setup` | Install everything, create and seed the database |
 | `npm run dev` | Run API and front end together with hot reload |
 | `npm run build` | Production build of the front end |
-| `npm start` | Run the API and serve the built front end |
+| `npm start` | Build the front end, then serve it **and** the API from one Node process on :4000 |
 | `npm test` | Run all 65 tests (unit and integration) |
 | `npm run db:seed` | Re-seed the database (clears existing data first) |
 
@@ -130,9 +134,12 @@ mesa/
 │       └── lib/                    api.js, format.js, motion.js
 │
 └── docs/
+    ├── proposal.md                 Project proposal (brief deliverable 1)
+    ├── architecture.svg            Architecture and data-flow diagram
     ├── design-spec.md              Full design specification
     ├── api.md                      Endpoint reference and data model
-    └── report.md                   The 500-word report
+    ├── report.md                   The 500-word report (source)
+    └── report.pdf                  The 500-word report (Canvas submission)
 ```
 
 ---
