@@ -85,23 +85,51 @@ testable and the database swap a connection-string change.
 
 ```
 mesa/
-├── server/
-│   ├── prisma/schema.prisma   Data model
-│   ├── prisma/seed.js         Deterministic seed data
-│   ├── src/lib/availability.js  Booking engine — pure functions
-│   ├── src/services/          Business logic
-│   ├── src/routes/            HTTP surface
-│   ├── src/middleware/        Auth and error handling
-│   └── test/                  Unit tests
-├── client/
+├── package.json                    Root scripts — setup, dev, build, test
+│
+├── server/                         Express API
+│   ├── .env.example                Copy to .env before first run
+│   ├── prisma/
+│   │   ├── schema.prisma           Data model
+│   │   └── seed.js                 Deterministic seed data
+│   ├── src/
+│   │   ├── index.js                Entry point
+│   │   ├── app.js                  Express app (exported unlistened, for tests)
+│   │   ├── config.js               Environment, read once at startup
+│   │   ├── db.js                   Prisma client singleton
+│   │   ├── lib/
+│   │   │   ├── availability.js     Booking engine — pure, no I/O
+│   │   │   ├── constants.js        Roles and statuses, single source of truth
+│   │   │   ├── errors.js           One AppError type
+│   │   │   ├── token.js            JWT sign and verify
+│   │   │   └── validation.js       Input parsing, pure
+│   │   ├── middleware/             authenticate, authorize, error handler
+│   │   ├── services/               Business logic — never touches req/res
+│   │   └── routes/                 HTTP surface — never touches Prisma
+│   └── test/availability.test.js   35 unit tests on the booking engine
+│
+├── client/                         React front end (Vite)
+│   ├── public/                     Hero video and poster
 │   └── src/
-│       ├── components/TablePlan.jsx   The isometric floor plan
-│       ├── pages/             One file per screen
-│       ├── state/             Auth and toast contexts
-│       └── lib/api.js         Single fetch wrapper
+│       ├── main.jsx                Routes and guards
+│       ├── index.css               Design tokens and global rules
+│       ├── components/
+│       │   ├── Layout.jsx          Shell: top bar, outlet, footer
+│       │   ├── TablePlan3D.jsx     WebGL floor plan
+│       │   ├── furniture.jsx       Tables and chairs geometry
+│       │   ├── FloorPlan.jsx       Picks 3D or the flat fallback
+│       │   ├── TablePlan.jsx       Flat CSS fallback plan
+│       │   ├── Select.jsx          Custom listbox (WAI-ARIA)
+│       │   ├── charts.jsx          Hand-built SVG charts
+│       │   └── ui.jsx              Buttons, fields, reveals
+│       ├── pages/                  One file per screen
+│       ├── state/                  Auth and toast contexts
+│       └── lib/                    api.js, format.js, motion.js
+│
 └── docs/
-    ├── api.md                 Endpoint reference
-    └── superpowers/specs/     Design specification
+    ├── design-spec.md              Full design specification
+    ├── api.md                      Endpoint reference and data model
+    └── report.md                   The 500-word report
 ```
 
 ---

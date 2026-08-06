@@ -6,7 +6,10 @@ build/
 *.log
 npm-debug.log*
 .DS_Store
-.vscode/
+# Editor settings are shared so the project opens the same way for anyone;
+# personal launch configs and local overrides are not.
+.vscode/*
+!.vscode/settings.json
 coverage/
 *.db
 *.db-journal

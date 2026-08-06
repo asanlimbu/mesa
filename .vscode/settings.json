@@ -1,0 +1,40 @@
+{
+  // Keep the explorer to things worth opening. Dependencies, build output and
+  // the SQLite file are all generated — hiding them makes the tree readable.
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.DS_Store": true,
+    "**/*.db": true,
+    "**/*.db-journal": true
+  },
+
+  // Search and file-watching skip the same directories, which also stops the
+  // watcher pegging a CPU core on a project this size.
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/package-lock.json": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true
+  },
+
+  // House style: 2 spaces, single quotes, trailing newline, no trailing space.
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+
+  // The 88-column guide matches how the source is already wrapped.
+  "editor.rulers": [88],
+
+  "[javascript]": { "editor.tabSize": 2 },
+  "[javascriptreact]": { "editor.tabSize": 2 },
+  "[json]": { "editor.tabSize": 2 },
+  "[prisma]": { "editor.tabSize": 2 },
+  "[css]": { "editor.tabSize": 2 },
+  "[markdown]": { "files.trimTrailingWhitespace": false }
+}
