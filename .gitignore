@@ -18,3 +18,12 @@ coverage/
 *.sqlite
 *.sqlite3
 .superpowers/
+
+# Coursework submission artefacts — these go to Canvas, not the repo.
+docs/Mesa_Project_Report.docx
+docs/report.pdf
+docs/report.md
+docs/report.html
+docs/presentation.pptx
+# Word lock files
+~$*

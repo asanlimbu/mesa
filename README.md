@@ -137,10 +137,11 @@ mesa/
     ├── proposal.md                 Project proposal (brief deliverable 1)
     ├── architecture.svg            Architecture and data-flow diagram
     ├── design-spec.md              Full design specification
-    ├── api.md                      Endpoint reference and data model
-    ├── report.md                   The 500-word report (source)
-    └── report.pdf                  The 500-word report (Canvas submission)
+    └── api.md                      Endpoint reference and data model
 ```
+
+The 500-word report and the presentation deck are submitted through Canvas
+rather than kept here.
 
 ---
 
