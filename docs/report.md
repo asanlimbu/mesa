@@ -1,6 +1,7 @@
 # Mesa — Restaurant Table Reservation Platform
 
-**Student Name:** Asan Limbu
+**Student Name:** Asan Limbu  
+**Unit:** CMS22204 Full Stack Application Development, Level 5
 **Target Audience:** Diners booking tables at independent UK restaurants, and the managers who run those venues.
 
 ## Project Summary & Problem Statement
