@@ -56,7 +56,7 @@ authorisation: neither manager can read or change the other's reservations.
 | `npm run dev` | Run API and front end together with hot reload |
 | `npm run build` | Production build of the front end |
 | `npm start` | Run the API and serve the built front end |
-| `npm test` | Run the server test suite |
+| `npm test` | Run all 65 tests (unit and integration) |
 | `npm run db:seed` | Re-seed the database (clears existing data first) |
 
 Run `npm --prefix server run db:studio` to browse the database in Prisma Studio.
@@ -103,10 +103,13 @@ mesa/
 │   │   │   ├── errors.js           One AppError type
 │   │   │   ├── token.js            JWT sign and verify
 │   │   │   └── validation.js       Input parsing, pure
-│   │   ├── middleware/             authenticate, authorize, error handler
+│   │   ├── middleware/             auth, errors, request logging, rate limits
 │   │   ├── services/               Business logic — never touches req/res
 │   │   └── routes/                 HTTP surface — never touches Prisma
-│   └── test/availability.test.js   35 unit tests on the booking engine
+│   └── test/
+│       ├── availability.test.js   35 unit tests on the booking engine
+│       ├── api.test.js            30 integration tests over HTTP
+│       └── helpers/fixtures.js    Known estate for the integration suite
 │
 ├── client/                         React front end (Vite)
 │   ├── public/                     Hero video and poster
@@ -181,19 +184,64 @@ it can be unit-tested directly, and it is the subject of most of the test suite.
 
 ---
 
+## Running it in earnest
+
+The API is set up to survive contact with a real environment, not just a demo.
+
+- **Security headers** via Helmet, and `x-powered-by` disabled so the server
+  does not advertise what it is.
+- **Rate limiting** in three tiers. Credentials get 10 failures per 15 minutes
+  per IP, counted only against *failed* attempts, so signing in from several
+  devices is never punished — an unthrottled login endpoint is an offline
+  password cracker with a network hop in front of it. Writes get 30/minute,
+  everything else 300/minute.
+- **A request id** on every response and inside every error body. It is the
+  only handle a user has on a specific request, so "it broke" can be traced to
+  a log line.
+- **A health check that means something.** `/api/health` probes the database
+  and answers 503 if it cannot reach it. A check that only proves the process
+  is alive would keep a load balancer routing traffic to an instance that
+  cannot serve a single request.
+- **Graceful shutdown.** SIGTERM stops new connections, lets in-flight requests
+  finish, then closes the database — with a 10-second backstop so a hung
+  request cannot keep a dying process alive. Killing the process mid-transaction
+  is how a booking gets half-written.
+- **`trust proxy` in production**, so the rate limiter sees the real client IP
+  rather than throttling every user as if they were the proxy.
+
+---
+
 ## Testing
 
 ```bash
 npm test
 ```
 
-35 unit tests covering the booking engine, including the cases where a subtle
-error would be invisible in a demo but wrong in production: back-to-back
-bookings at the exact boundary, cancelled bookings correctly releasing their
-table, a party that fits no table, bookings outside opening hours, and service
-that runs past midnight.
+**65 tests, in two suites.**
 
----
+**35 unit tests** on the booking engine (`server/test/availability.test.js`) —
+the cases where a subtle error would be invisible in a demo but wrong in
+production: back-to-back bookings at the exact boundary, cancelled bookings
+releasing their table, a party that fits no table, sittings outside opening
+hours, and service running past midnight.
+
+**30 integration tests** (`server/test/api.test.js`) driving the real Express
+app over HTTP with Supertest, against a database of its own. These prove the
+wiring the unit suite cannot see:
+
+| Area | What is proven |
+|---|---|
+| Authentication | Registration, token round-trip, and that a wrong password and an unknown email are byte-for-byte indistinguishable |
+| Booking | Smallest sufficient table allocated; double-booking refused with alternatives; **two concurrent requests for the last table cannot both win**; cancelling frees the table |
+| Authorisation | A diner cannot read another diner's booking; a diner gets 403 on manager routes; **a manager gets 404 — not 403 — on another venue's records**, and the record is verifiably unchanged |
+| Contract | Request id on every response and every error; validation returns per-field messages; malformed JSON is a 400 |
+
+The authorisation tests matter most. Ownership scoping is the security property
+this system rests on, and asserting it in a README is not the same as proving a
+second manager receives a 404.
+
+Integration tests run against `server/test.db`, created and reset per run, so
+they never touch development data.
 
 ## Notes on the brief
 

@@ -1,17 +1,20 @@
 {
   "name": "mesa-server",
   "version": "1.0.0",
-  "description": "Mesa reservation platform — Express API",
+  "description": "Mesa reservation platform \u2014 Express API",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test": "node --test \"test/**/*.test.js\"",
+    "test": "npm run test:setup && npm run test:run",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
     "db:reset": "prisma db push --force-reset && node prisma/seed.js",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test:setup": "DATABASE_URL=\"file:./test.db\" prisma db push --skip-generate --accept-data-loss",
+    "test:run": "NODE_ENV=test DATABASE_URL=\"file:./test.db\" node --test \"test/**/*.test.js\"",
+    "test:unit": "node --test test/availability.test.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -19,9 +22,14 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.9.0",
     "prisma": "^6.19.0",
     "supertest": "^7.1.4"
   }

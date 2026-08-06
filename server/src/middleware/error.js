@@ -18,9 +18,20 @@ export function notFoundHandler(req, _res, next) {
 
 // Express identifies error middleware by arity, so `next` must stay declared.
 // eslint-disable-next-line no-unused-vars
-export function errorHandler(error, _req, res, _next) {
+export function errorHandler(error, req, res, _next) {
+  /**
+   * Attach the request id to every failure.
+   *
+   * It is the only handle a user has on a specific request, so it has to reach
+   * them — otherwise "it broke" cannot be traced to a log line.
+   */
+  const withRequestId = (body) => ({
+    ...body,
+    error: { ...body.error, requestId: req.id },
+  });
+
   if (error instanceof AppError) {
-    return res.status(error.status).json(error.toJSON());
+    return res.status(error.status).json(withRequestId(error.toJSON()));
   }
 
   // Unique constraint violation — the only Prisma error worth translating,
