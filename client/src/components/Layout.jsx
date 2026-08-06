@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 import { useSmoothScroll } from '../lib/motion.js';
-import { Cursor } from './Cursor.jsx';
 import { Preloader } from './Preloader.jsx';
 
 import { useAuth } from '../state/auth.jsx';
@@ -68,7 +67,6 @@ export function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <Preloader />
-      <Cursor />
       <header className="sticky top-0 z-40 border-b border-sage/15 bg-ink/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
           <Wordmark />

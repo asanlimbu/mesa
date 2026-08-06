@@ -94,14 +94,10 @@
   }
 
   /*
-    Film grain over the whole page.
+    Film grain.
 
     Dark gradients band badly on wide-gamut displays; a little noise breaks the
-    steps up and gives the surface a physical quality. Fixed, pointer-inert,
-    and above the page but below the toasts.
-  */
-  /*
-    Film grain.
+    steps up and gives the surface a physical quality.
 
     Two hard-won constraints. No mix-blend-mode: a blended full-screen layer
     makes the compositor blend the WebGL canvas against it and the canvas goes
@@ -130,6 +126,17 @@
   button {
     font: inherit;
     color: inherit;
+  }
+
+  /* Buttons default to an arrow in most browsers; the hand is what people
+     expect on something clickable, and links already get it. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
   }
 
   input[type='date']::-webkit-calendar-picker-indicator,
@@ -309,60 +316,6 @@
   .word-mask > span {
     animation: none;
   }
-
-  /* The custom cursor is a motion effect; give the pointer back. */
-  .cursor-hidden,
-  .cursor-hidden * {
-    cursor: auto !important;
-  }
-}
-
-/*
-  Custom cursor.
-
-  Only engaged for fine pointers — a touch device has no cursor to replace, and
-  hiding the system cursor there would do nothing but risk breaking input.
-*/
-@media (hover: hover) and (pointer: fine) {
-  .cursor-hidden,
-  .cursor-hidden * {
-    cursor: none;
-  }
-}
-
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scaleY(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Preloader: the mark draws itself, then a rule sweeps across. */
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes sweep {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-/* Cursor ring swells and fills when it is over something you can act on. */
-.cursor-ring.is-over {
-  width: 3.25rem;
-  height: 3.25rem;
-  background-color: color-mix(in srgb, var(--color-brass) 85%, transparent);
-  border-color: transparent;
 }
 
 /* Page transition, driven by CSS so a stalled animation frame loop can never
