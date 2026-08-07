@@ -348,12 +348,18 @@ async function main() {
           else status = RESERVATION_STATUS.COMPLETED;
         }
 
+        // Always CONFIRMED here, whatever the row is finally written as.
+        // `placed` exists only to stop the generator handing the same table to
+        // two sittings at once, and the engine deliberately treats COMPLETED,
+        // CANCELLED and NO_SHOW as having released the table — correct for a
+        // live booking, wrong for building a history, because it would let two
+        // completed sittings occupy one table at one time, which never happened.
         placed.push({
           id: `seed-${rows.length}`,
           tableId: table.id,
           startsAt: window.startsAt,
           endsAt: window.endsAt,
-          status,
+          status: RESERVATION_STATUS.CONFIRMED,
         });
 
         rows.push({
@@ -402,7 +408,7 @@ async function main() {
       tableId: table.id,
       startsAt: window.startsAt,
       endsAt: window.endsAt,
-      status: booking.status,
+      status: RESERVATION_STATUS.CONFIRMED, // see the note in the bulk loop above
     });
 
     rows.push({
